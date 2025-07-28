@@ -1,0 +1,103 @@
+version: '3.8'
+
+services:
+  # API Backend
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - DATABASE_URL=sqlite:///./prompt-ops-hub.db
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+    command: python -m src.main
+    depends_on:
+      - agent
+
+  # Agent Worker
+  agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - DATABASE_URL=sqlite:///./prompt-ops-hub.db
+      - POLL_INTERVAL=30
+      - MAX_RETRIES=3
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+      - .:/app/workspace
+    command: python -m src.agent.worker --poll-interval 30
+    depends_on:
+      - api
+
+  # Frontend UI
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - api
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+
+  # Development with hot reload
+  dev-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8000:8000"
+    environment:
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - DATABASE_URL=sqlite:///./prompt-ops-hub.db
+    volumes:
+      - .:/app
+      - ./data:/app/data
+      - ./config:/app/config
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+    profiles:
+      - dev
+
+  dev-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm run dev
+    profiles:
+      - dev
+
+  dev-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    environment:
+      - DATABASE_URL=sqlite:///./prompt-ops-hub.db
+      - POLL_INTERVAL=30
+      - MAX_RETRIES=3
+    volumes:
+      - .:/app
+      - ./data:/app/data
+      - ./config:/app/config
+    command: python -m src.agent.worker --poll-interval 30
+    profiles:
+      - dev 

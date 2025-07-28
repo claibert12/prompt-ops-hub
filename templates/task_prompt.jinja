@@ -1,0 +1,46 @@
+# Task: {{ task_description }}
+
+## Context
+**Phase**: {{ phase.current_phase }} - {{ phase.phase_name }}
+**Description**: {{ phase.description }}
+
+## Rules & Constraints
+{{ rules_excerpt }}
+
+## Project Context
+{{ context_excerpt }}
+
+## Task Details
+{{ task_description }}
+
+## Acceptance Criteria
+- [ ] Task implementation follows the specified rules and constraints
+- [ ] Code changes are properly tested with unit and integration tests
+- [ ] No hardcoded secrets or sensitive information
+- [ ] Configuration uses environment variables where appropriate
+- [ ] Documentation is updated if behavior changes
+- [ ] Performance considerations are addressed
+- [ ] Security best practices are followed
+- [ ] Error handling is implemented with structured exceptions
+- [ ] Logging is added for observability where needed
+
+## Self-Check
+Before submitting your response, verify that you have:
+
+1. **Followed all rules** from the rules.md file
+2. **Included appropriate tests** for any code changes
+3. **Avoided hardcoded secrets** and used config/env patterns
+4. **Updated documentation** if APIs or behavior changed
+5. **Considered security implications** (SQL injection, XSS, etc.)
+6. **Added proper error handling** with actionable messages
+7. **Included logging/metrics** for long-running processes
+8. **Respected scope boundaries** - extras go to Future Ideas
+9. **Used deterministic logic** without randomness in core functions
+10. **Applied performance best practices** (avoid O(n²) loops, etc.)
+
+## Additional Notes
+- Keep responses focused on the current task scope
+- If you encounter ambiguity, ask clarifying questions
+- For destructive or high-cost operations, request explicit approval
+- Break large changes into reviewable chunks (≤300 LOC diffs)
+- Ensure all generated code passes linting and tests 

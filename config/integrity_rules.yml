@@ -1,0 +1,30 @@
+# Integrity rules configuration for Observer
+
+# Minimum integrity score required
+min_score: 70
+
+# Coverage drop threshold (percentage points)
+coverage_drop_threshold: 5
+
+# Minimum code/test ratio
+code_test_ratio_min: 0.1
+
+# Weasel word penalty
+weasel_word_penalty: 10
+
+# Violation weights
+violation_weights:
+  coverage_drop: 2.0
+  diff_coverage_fail: 1.5
+  test_skips: 0.5
+  test_deletions: 2.0
+  threshold_edits: 2.0
+  code_test_ratio: 0.5
+  weasel_words: 0.3
+  claim_mismatch: 2.0
+
+# Severity multipliers
+severity_multipliers:
+  warning: 5
+  error: 10
+  critical: 20 

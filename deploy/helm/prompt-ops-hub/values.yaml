@@ -1,0 +1,124 @@
+# Default values for prompt-ops-hub
+replicaCount: 1
+
+image:
+  repository: prompt-ops-hub
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 8000
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Database configuration
+database:
+  enabled: true
+  type: postgresql
+  host: postgresql
+  port: 5432
+  name: promptops
+  username: promptops
+  password: promptops
+  existingSecret: ""
+
+# Redis configuration
+redis:
+  enabled: true
+  host: redis
+  port: 6379
+  password: ""
+
+# GitHub configuration
+github:
+  token: ""
+  webhookSecret: ""
+
+# Secrets configuration
+secrets:
+  secretKey: ""
+  githubToken: ""
+  databasePassword: ""
+
+# Environment variables
+env:
+  ENVIRONMENT: production
+  LOG_LEVEL: INFO
+  DATABASE_URL: ""
+  REDIS_URL: ""
+  GITHUB_TOKEN: ""
+  SECRET_KEY: ""
+
+# Worker configuration
+worker:
+  enabled: true
+  replicaCount: 1
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+# Frontend configuration
+frontend:
+  enabled: true
+  image:
+    repository: prompt-ops-hub-frontend
+    tag: "latest"
+  service:
+    type: ClusterIP
+    port: 3000
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi 

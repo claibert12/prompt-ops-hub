@@ -1,0 +1,16 @@
+apiVersion: v2
+name: prompt-ops-hub
+description: A Helm chart for Prompt Ops Hub with integrity gates
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - prompt-ops
+  - integrity-gates
+  - ci-cd
+home: https://github.com/your-org/prompt-ops-hub
+sources:
+  - https://github.com/your-org/prompt-ops-hub
+maintainers:
+  - name: Your Name
+    email: your.email@example.com 

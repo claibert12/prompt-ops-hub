@@ -1,0 +1,104 @@
+# Semgrep rules for detecting performance issues
+# These rules help identify potential performance bottlenecks
+
+rules:
+  - id: nested-loop-complexity
+    pattern: |
+      for ... in ...:
+        for ... in ...:
+          ...
+    message: "Nested loops detected. Consider if O(n^2) complexity is necessary."
+    severity: MEDIUM
+    languages: [python]
+    metadata:
+      category: performance
+      subcategory: complexity
+
+  - id: list-comprehension-nested
+    pattern: [x for x in ... for y in ...]
+    message: "Nested list comprehension detected. Consider if O(n^2) complexity is necessary."
+    severity: MEDIUM
+    languages: [python]
+    metadata:
+      category: performance
+      subcategory: complexity
+
+  - id: unbounded-while-loop
+    pattern: |
+      while True:
+        ...
+    message: "Unbounded while loop detected. Ensure there's a proper exit condition."
+    severity: MEDIUM
+    languages: [python]
+    metadata:
+      category: performance
+      subcategory: loops
+
+  - id: large-file-read
+    pattern: |
+      with open(..., 'r') as f:
+        content = f.read()
+    message: "Large file read detected. Consider reading in chunks for large files."
+    severity: LOW
+    languages: [python]
+    metadata:
+      category: performance
+      subcategory: file-io
+
+  - id: inefficient-string-concatenation
+    pattern: |
+      result = ""
+      for ... in ...:
+        result += ...
+    message: "Inefficient string concatenation in loop detected. Use list.join() or f-strings."
+    severity: MEDIUM
+    languages: [python]
+    metadata:
+      category: performance
+      subcategory: strings
+
+  - id: list-append-in-loop
+    pattern: |
+      result = []
+      for ... in ...:
+        result.append(...)
+    message: "List append in loop detected. Consider list comprehension for better performance."
+    severity: LOW
+    languages: [python]
+    metadata:
+      category: performance
+      subcategory: data-structures
+
+  - id: dict-update-in-loop
+    pattern: |
+      result = {}
+      for ... in ...:
+        result.update(...)
+    message: "Dict update in loop detected. Consider dict comprehension for better performance."
+    severity: LOW
+    languages: [python]
+    metadata:
+      category: performance
+      subcategory: data-structures
+
+  - id: sleep-in-loop
+    pattern: |
+      for ... in ...:
+        time.sleep(...)
+    message: "Sleep in loop detected. Consider if this is necessary for performance."
+    severity: LOW
+    languages: [python]
+    metadata:
+      category: performance
+      subcategory: timing
+
+  - id: expensive-operation-in-loop
+    pattern: |
+      for ... in ...:
+        re.compile(...)
+    message: "Expensive operation (regex compile) in loop detected. Move outside loop."
+    severity: MEDIUM
+    languages: [python]
+    metadata:
+      category: performance
+      subcategory: operations 

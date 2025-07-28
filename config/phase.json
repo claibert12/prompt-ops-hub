@@ -1,0 +1,29 @@
+{
+  "current_phase": "P0",
+  "phase_name": "Core MVP",
+  "description": "Basic prompt building and task management",
+  "features": {
+    "config_loader": true,
+    "prompt_builder": true,
+    "database": true,
+    "cli": true,
+    "api": true,
+    "cursor_adapter": false,
+    "github_integration": false,
+    "model_routing": false,
+    "guardrails": false
+  },
+  "constraints": {
+    "max_diff_size": 300,
+    "auto_approve_only": ["docs", "tests", "refactors"],
+    "require_approval": ["db_schema", "external_deps", "large_diffs"],
+    "token_budget": 8000,
+    "time_limit_minutes": 10
+  },
+  "model_capabilities": {
+    "reasoning": ["gpt-4", "claude-3-opus"],
+    "fast": ["gpt-3.5-turbo", "claude-3-haiku"],
+    "cheap": ["gpt-3.5-turbo", "claude-3-haiku"],
+    "embedding": ["text-embedding-ada-002", "claude-3-sonnet"]
+  }
+} 

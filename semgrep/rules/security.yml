@@ -1,0 +1,93 @@
+# Semgrep rules for detecting security vulnerabilities
+# These rules help prevent common security issues in Python code
+
+rules:
+  - id: dangerous-eval
+    pattern: eval(...)
+    message: "Dangerous eval() usage detected. Use safer alternatives."
+    severity: HIGH
+    languages: [python]
+    metadata:
+      category: security
+      subcategory: code-injection
+
+  - id: dangerous-exec
+    pattern: exec(...)
+    message: "Dangerous exec() usage detected. Use safer alternatives."
+    severity: HIGH
+    languages: [python]
+    metadata:
+      category: security
+      subcategory: code-injection
+
+  - id: dangerous-import
+    pattern: __import__(...)
+    message: "Dangerous __import__ usage detected. Use importlib.import_module() instead."
+    severity: HIGH
+    languages: [python]
+    metadata:
+      category: security
+      subcategory: code-injection
+
+  - id: subprocess-shell-true
+    pattern: subprocess.run(..., shell=True, ...)
+    message: "Dangerous subprocess with shell=True detected. Use shell=False and pass args as list."
+    severity: HIGH
+    languages: [python]
+    metadata:
+      category: security
+      subcategory: command-injection
+
+  - id: subprocess-popen-shell
+    pattern: subprocess.Popen(..., shell=True, ...)
+    message: "Dangerous Popen with shell=True detected. Use shell=False and pass args as list."
+    severity: HIGH
+    languages: [python]
+    metadata:
+      category: security
+      subcategory: command-injection
+
+  - id: os-system
+    pattern: os.system(...)
+    message: "Dangerous os.system() usage detected. Use subprocess.run() with shell=False."
+    severity: HIGH
+    languages: [python]
+    metadata:
+      category: security
+      subcategory: command-injection
+
+  - id: pickle-loads
+    pattern: pickle.loads(...)
+    message: "Dangerous pickle.loads() usage detected. Use safer serialization formats."
+    severity: HIGH
+    languages: [python]
+    metadata:
+      category: security
+      subcategory: deserialization
+
+  - id: yaml-load
+    pattern: yaml.load(...)
+    message: "Dangerous yaml.load() usage detected. Use yaml.safe_load() instead."
+    severity: HIGH
+    languages: [python]
+    metadata:
+      category: security
+      subcategory: deserialization
+
+  - id: wildcard-import
+    pattern: from ... import *
+    message: "Wildcard import detected. Import specific modules to avoid namespace pollution."
+    severity: MEDIUM
+    languages: [python]
+    metadata:
+      category: security
+      subcategory: imports
+
+  - id: hardcoded-url
+    pattern: url\s*=\s*['"]https?://[^'"]+['"]
+    message: "Hardcoded URL detected. Use configuration or environment variables."
+    severity: MEDIUM
+    languages: [python]
+    metadata:
+      category: security
+      subcategory: configuration 
