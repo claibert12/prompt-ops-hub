@@ -361,7 +361,8 @@ class TestCLIComprehensive:
         assert "Success!" in result.stdout  # The mock is returning success, so we check for that
 
     @patch('src.cli.regen_loop')
-    def test_cli_clarify_success(self, mock_regen):
+    @patch('src.cli.get_db_manager')
+    def test_cli_clarify_success(self, mock_db, mock_regen):
         """Test CLI clarify command success."""
         mock_result = MagicMock()
         mock_result.success = True
@@ -370,15 +371,27 @@ class TestCLIComprehensive:
         mock_result.error_message = None
         mock_regen.clarify_and_continue.return_value = mock_result
         
+        # Mock database manager
+        mock_db.return_value.create_tables.return_value = None
+        mock_task = MagicMock()
+        mock_task.id = 1
+        mock_task.task_text = "Test task"
+        mock_db.return_value.get_task.return_value = mock_task
+        
         result = self.runner.invoke(app, ["clarify", "1", "answer1,answer2"])
         
         assert result.exit_code == 0
         assert "Success!" in result.stdout
 
     @patch('src.cli.regen_loop')
-    def test_cli_clarify_not_found(self, mock_regen):
+    @patch('src.cli.get_db_manager')
+    def test_cli_clarify_not_found(self, mock_db, mock_regen):
         """Test CLI clarify command not found."""
         mock_regen.clarify_and_continue.side_effect = Exception("Run not found")
+        
+        # Mock database manager
+        mock_db.return_value.create_tables.return_value = None
+        mock_db.return_value.get_task.return_value = None
         
         result = self.runner.invoke(app, ["clarify", "999", "answer"])
         

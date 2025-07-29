@@ -474,10 +474,14 @@ def clarify(
             typer.echo(f"Task {task_id} not found")
             raise typer.Exit(1)
 
-        typer.echo(f"Answers: {answer_list}")
+        # Call regen_loop to handle clarification
+        result = regen_loop.clarify_and_continue(task_id, answer_list)
 
-        # Store answers (in a real implementation, this would update the task)
-        typer.echo("Success!")
+        if result.success:
+            typer.echo("Success!")
+        else:
+            typer.echo(f"Error: {result.error_message}")
+            raise typer.Exit(1)
 
     except Exception as e:
         typer.echo(f"Error: {e}", err=True)
