@@ -153,13 +153,13 @@ class TestProjectScaffold:
         """Test directory creation with parents."""
         self.scaffold._create_directories()
         
-        # Check that parents=True is used for nested directories
+                # Check that parents=True is used for nested directories
         calls = mock_mkdir.call_args_list
         for call in calls:
             try:
                 path_str = str(call[0][0])
                 if len(path_str.split('/')) > 1 or len(path_str.split('\\')) > 1:
-                assert call[1].get('parents') is True 
+                    assert call[1].get('parents') is True 
             except (IndexError, AttributeError):
                 # Skip calls that don't have the expected structure
                 pass 

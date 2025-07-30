@@ -270,7 +270,7 @@ jobs:
             if not snippet2.strip():
                 differences.append("File is empty")
             else:
-            differences.append("Content differs")
+                differences.append("Content differs")
         return differences
 
     def _normalize_snippet(self, snippet: str) -> str:

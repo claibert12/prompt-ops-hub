@@ -122,7 +122,6 @@ addopts = [
     "--cov=src",
     "--cov-report=term-missing",
     "--cov-report=xml",
-    "--fail-under=80",
 ]
 
 [tool.coverage.run]
@@ -143,8 +142,8 @@ exclude_lines = [
     "raise NotImplementedError",
     "if 0:",
     "if __name__ == .__main__.:",
-    "class .*\\bProtocol\\):",
-    "@(abc\\.)?abstractmethod",
+    "class .*Protocol:",
+    "@(abc)?abstractmethod",
 ]
 fail_under = 80
 
@@ -477,6 +476,20 @@ MIT License
             else:
                 results["errors"].append(guardrails_results["error"])
             
+            # Create example module
+            example_results = self.create_example_module()
+            if example_results["created"]:
+                results["structure"]["created_files"].append(str(self.project_path / "src/example.py"))
+            else:
+                results["errors"].append(example_results["error"])
+            
+            # Create example test
+            test_results = self.create_example_test()
+            if test_results["created"]:
+                results["structure"]["created_files"].append(str(self.project_path / "tests/test_example.py"))
+            else:
+                results["errors"].append(test_results["error"])
+            
             # Check if any errors occurred
             if results["errors"]:
                 results["success"] = False
@@ -487,6 +500,103 @@ MIT License
         except Exception as e:
             results["success"] = False
             results["errors"].append(f"Unexpected error: {e}")
+        
+        return results
+
+    def create_example_module(self) -> Dict[str, Any]:
+        """Create example module with a simple function.
+        
+        Returns:
+            Dictionary with creation results
+        """
+        results = {"created": False, "error": None}
+        
+        try:
+            content = '''"""Example module demonstrating basic functionality."""
+
+
+def greet(name: str) -> str:
+    """Return a greeting message.
+    
+    Args:
+        name: Name to greet
+        
+    Returns:
+        Greeting message
+    """
+    return f"Hello, {name}!"
+
+
+def add_numbers(a: int, b: int) -> int:
+    """Add two numbers.
+    
+    Args:
+        a: First number
+        b: Second number
+        
+    Returns:
+        Sum of the two numbers
+    """
+    return a + b
+'''
+            
+            file_path = self.project_path / "src" / "example.py"
+            with open(file_path, 'w') as f:
+                f.write(content)
+            
+            results["created"] = True
+            
+        except Exception as e:
+            results["error"] = str(e)
+        
+        return results
+
+    def create_example_test(self) -> Dict[str, Any]:
+        """Create example test file.
+        
+        Returns:
+            Dictionary with creation results
+        """
+        results = {"created": False, "error": None}
+        
+        try:
+            content = '''"""Tests for the example module."""
+
+import pytest
+from src.example import greet, add_numbers
+
+
+def test_greet():
+    """Test the greet function."""
+    assert greet("World") == "Hello, World!"
+    assert greet("Alice") == "Hello, Alice!"
+
+
+def test_add_numbers():
+    """Test the add_numbers function."""
+    assert add_numbers(1, 2) == 3
+    assert add_numbers(-1, 1) == 0
+    assert add_numbers(0, 0) == 0
+
+
+def test_greet_empty_string():
+    """Test greet with empty string."""
+    assert greet("") == "Hello, !"
+
+
+def test_add_numbers_large():
+    """Test add_numbers with large numbers."""
+    assert add_numbers(1000, 2000) == 3000
+'''
+            
+            file_path = self.project_path / "tests" / "test_example.py"
+            with open(file_path, 'w') as f:
+                f.write(content)
+            
+            results["created"] = True
+            
+        except Exception as e:
+            results["error"] = str(e)
         
         return results
 
@@ -501,6 +611,7 @@ MIT License
         try:
             content = """# Byte-compiled / optimized / DLL files
 __pycache__/
+*.pyc
 *.py[cod]
 *$py.class
 
@@ -1122,8 +1233,8 @@ exclude_lines = [
     "raise NotImplementedError",
     "if 0:",
     "if __name__ == .__main__.:",
-    "class .*\\bProtocol\\):",
-    "@(abc\\.)?abstractmethod",
+    r"class .*\bProtocol\):",
+    r"@(abc\.)?abstractmethod",
 ]
 
 [tool.black]

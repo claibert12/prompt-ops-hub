@@ -34,6 +34,7 @@ class TestCISnippetGenerator:
             "error": None
         }
         
+        with patch('pathlib.Path.exists', return_value=True):
             matches, differences = self.generator.check_snippet()
             
             assert matches is True
@@ -66,9 +67,9 @@ class TestCISnippetGenerator:
             "error": None
         }
         
-            result = self.generator.update_snippet()
-            
-            assert result is True
+        result = self.generator.update_snippet()
+        
+        assert result is True
 
     @patch('builtins.open', new_callable=mock_open)
     def test_update_snippet_error(self, mock_file):
