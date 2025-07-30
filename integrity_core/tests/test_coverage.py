@@ -27,9 +27,9 @@ class TestCoverageChecker:
         """Test finding coverage thresholds in pyproject.toml."""
         with patch('pathlib.Path.exists', return_value=True), \
              patch('pathlib.Path.read_text', return_value='fail_under = 85'):
-            checker = CoverageChecker()
-            thresholds = checker.find_coverage_thresholds()
-            
+        checker = CoverageChecker()
+        thresholds = checker.find_coverage_thresholds()
+        
             assert len(thresholds) >= 1
             pyproject_found = any(t[0] == "pyproject.toml" and t[1] == 85 for t in thresholds)
             assert pyproject_found
@@ -38,9 +38,9 @@ class TestCoverageChecker:
         """Test finding coverage thresholds in .coveragerc."""
         with patch('pathlib.Path.exists', return_value=True), \
              patch('pathlib.Path.read_text', return_value='fail_under = 90'):
-            checker = CoverageChecker()
-            thresholds = checker.find_coverage_thresholds()
-            
+        checker = CoverageChecker()
+        thresholds = checker.find_coverage_thresholds()
+        
             assert len(thresholds) >= 1
             coveragerc_found = any(t[0] == ".coveragerc" and t[1] == 90 for t in thresholds)
             assert coveragerc_found
@@ -127,8 +127,8 @@ class TestCoverageChecker:
         mock_exists.return_value = True
         
         with patch('pathlib.Path.read_text', return_value='fail_under = 85'):
-            checker = CoverageChecker()
-            success, violations = checker.check()
-            
-            assert success
-            assert len(violations) == 0 
+        checker = CoverageChecker()
+        success, violations = checker.check()
+        
+        assert success
+        assert len(violations) == 0 

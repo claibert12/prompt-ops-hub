@@ -621,13 +621,13 @@ async def get_integrity_metrics():
         runs = db_manager.list_runs()
         
         if not runs:
-                    return {
-            "total_runs": 0,
+            return {
+                "total_runs": 0,
             "avg_integrity_score": 0.0,
-            "runs_by_status": {},
+                "runs_by_status": {},
             "violations_by_type": {},
             "coverage_trend": []
-        }
+            }
         
         # Calculate metrics
         total_runs = len(runs)

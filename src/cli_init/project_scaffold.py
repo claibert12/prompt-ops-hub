@@ -1009,7 +1009,7 @@ Thumbs.db
 logs/
 temp/
 tmp/
-"""
+""" 
 
     def _get_github_workflow_content(self):
         """Get GitHub workflow content (test compatibility method)."""
@@ -1172,7 +1172,7 @@ disallow_untyped_defs = false
 
     def _create_directories_with_parents(self):
         """Create directories with parents (test compatibility method)."""
-        return self.create_project_structure()
+        return self.create_project_structure() 
 
     # Add the missing underscore methods that tests expect
     def _create_pyproject_toml(self):

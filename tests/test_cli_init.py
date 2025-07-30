@@ -159,7 +159,7 @@ class TestProjectScaffold:
             try:
                 path_str = str(call[0][0])
                 if len(path_str.split('/')) > 1 or len(path_str.split('\\')) > 1:
-                    assert call[1].get('parents') is True
+                assert call[1].get('parents') is True 
             except (IndexError, AttributeError):
                 # Skip calls that don't have the expected structure
                 pass 

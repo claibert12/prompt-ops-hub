@@ -16,7 +16,7 @@ class TestCISnippetGenerator:
     def test_generate_snippet(self):
         """Test CI snippet generation."""
         snippet = self.generator.generate_snippet()
-
+        
         assert "name: CI" in snippet
         assert "on:" in snippet
         assert "jobs:" in snippet
@@ -34,10 +34,10 @@ class TestCISnippetGenerator:
             "error": None
         }
         
-        matches, differences = self.generator.check_snippet()
-        
-        assert matches is True
-        assert differences == []
+            matches, differences = self.generator.check_snippet()
+            
+            assert matches is True
+            assert differences == []
 
     @patch('builtins.open', new_callable=mock_open, read_data="name: Old CI\non: [push]")
     def test_check_snippet_different(self, mock_file):
@@ -66,9 +66,9 @@ class TestCISnippetGenerator:
             "error": None
         }
         
-        result = self.generator.update_snippet()
-        
-        assert result is True
+            result = self.generator.update_snippet()
+            
+            assert result is True
 
     @patch('builtins.open', new_callable=mock_open)
     def test_update_snippet_error(self, mock_file):
@@ -133,9 +133,9 @@ class TestCISnippetGenerator:
     def test_read_current_snippet_file_not_found(self, mock_open):
         """Test reading current CI snippet when file doesn't exist."""
         mock_open.side_effect = FileNotFoundError("File not found")
-
+        
         content = self.generator._read_current_snippet()
-
+        
         # When file doesn't exist, it should return empty string
         assert content == ""
 
