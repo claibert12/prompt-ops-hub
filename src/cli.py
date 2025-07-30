@@ -629,7 +629,9 @@ def init_project(
     """Initialize a new project with integrity gates."""
     try:
         if project_path is None:
-            project_path = os.getcwd()
+            project_path = os.path.join(os.getcwd(), project_name)
+        else:
+            project_path = os.path.join(project_path, project_name)
         
         typer.echo(f"Creating project '{project_name}' at {project_path}")
         

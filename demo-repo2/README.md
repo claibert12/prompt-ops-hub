@@ -1,4 +1,4 @@
-# demo-repo
+# demo-repo2
 
 A project with integrity gates enforced.
 

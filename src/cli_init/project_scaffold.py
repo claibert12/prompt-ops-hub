@@ -373,7 +373,7 @@ A project with integrity gates enforced.
 ## Integrity Gates
 
 ### Coverage Requirements
-- Global coverage must be ≥80%
+- Global coverage must be >=80%
 - Diff coverage must be 100% on changed lines
 - Coverage thresholds cannot be lowered
 
