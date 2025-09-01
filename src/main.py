@@ -378,14 +378,13 @@ async def list_runs(
     """List runs with optional filters."""
     try:
         db_manager = get_db_manager()
-        runs = db_manager.list_runs(task_id=task_id, limit=limit)
-        
-        # Apply filters
-        if status:
-            runs = [r for r in runs if getattr(r, 'status', None) == status]
-        if integrity_min is not None:
-            runs = [r for r in runs if getattr(r, 'integrity_score', 0) >= integrity_min]
-        
+        runs = db_manager.list_runs(
+            task_id=task_id,
+            status=status,
+            integrity_min=integrity_min,
+            limit=limit,
+        )
+
         result = []
         for run in runs:
             run_data = {

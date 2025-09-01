@@ -149,22 +149,35 @@ class DatabaseManager:
             statement = select(Run).where(Run.id == run_id)
             return session.exec(statement).first()
 
-    def list_runs(self, task_id: int | None = None, limit: int | None = None) -> list[Run]:
-        """List runs, optionally filtered by task ID.
-        
+    def list_runs(
+        self,
+        task_id: int | None = None,
+        limit: int | None = None,
+        status: str | None = None,
+        integrity_min: float | None = None,
+    ) -> list[Run]:
+        """List runs with optional filters.
+
         Args:
             task_id: Filter by task ID (optional)
             limit: Maximum number of runs to return
-            
+            status: Filter by run status (optional)
+            integrity_min: Minimum integrity score (optional)
+
         Returns:
             List of runs
         """
         with self.get_session() as session:
-            if task_id:
-                statement = select(Run).where(Run.task_id == task_id).order_by(Run.created_at.desc())
-            else:
-                statement = select(Run).order_by(Run.created_at.desc())
+            statement = select(Run)
 
+            if task_id:
+                statement = statement.where(Run.task_id == task_id)
+            if status:
+                statement = statement.where(Run.status == status)
+            if integrity_min is not None:
+                statement = statement.where(Run.integrity_score >= integrity_min)
+
+            statement = statement.order_by(Run.created_at.desc())
             if limit:
                 statement = statement.limit(limit)
             return session.exec(statement).all()
