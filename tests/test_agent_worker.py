@@ -134,7 +134,7 @@ class TestAgentWorker:
         
         # Mock regen loop to raise exception
         with patch('src.agent.worker.regen_loop') as mock_regen:
-            mock_regen.run_with_regen.side_effect = Exception("Test exception")
+            mock_regen.run_with_regen.side_effect = RuntimeError("Test exception")
             
             await worker._process_task(mock_task)
             

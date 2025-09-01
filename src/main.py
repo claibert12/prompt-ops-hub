@@ -4,6 +4,8 @@ import os
 import json
 
 from fastapi import FastAPI, HTTPException, Form, Query, Body
+import logging
+from sqlalchemy.exc import SQLAlchemyError
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -13,6 +15,8 @@ from src.core.models import RunCreate, RunResponse, TaskCreate, TaskResponse
 from src.core.prompt_builder import prompt_builder
 from src.services.cursor_adapter import cursor_adapter
 from src.services.github_adapter import get_github_adapter
+
+logger = logging.getLogger(__name__)
 
 # Pydantic models for request bodies
 class ApproveRunRequest(BaseModel):
@@ -82,7 +86,8 @@ async def create_task(task_create: TaskCreate):
             created_at=task.created_at
         )
 
-    except Exception as e:
+    except (ValueError, RuntimeError, SQLAlchemyError) as e:
+        logger.exception("Unhandled error")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -110,7 +115,8 @@ async def list_tasks(limit: int = None):
             for task in tasks
         ]
 
-    except Exception as e:
+    except (ValueError, RuntimeError, SQLAlchemyError) as e:
+        logger.exception("Unhandled error")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -140,7 +146,8 @@ async def get_task(task_id: int):
 
     except HTTPException:
         raise
-    except Exception as e:
+    except (ValueError, RuntimeError, SQLAlchemyError) as e:
+        logger.exception("Unhandled error")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -165,7 +172,8 @@ async def delete_task(task_id: int):
         
     except HTTPException:
         raise
-    except Exception as e:
+    except (ValueError, RuntimeError, SQLAlchemyError) as e:
+        logger.exception("Unhandled error")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -187,7 +195,8 @@ async def build_prompt(task_description: str = Form(...)):
             "built_prompt": built_prompt
         }
 
-    except Exception as e:
+    except (ValueError, RuntimeError, SQLAlchemyError) as e:
+        logger.exception("Unhandled error")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -258,7 +267,8 @@ async def run_task(task_id: int, test_command: str = "pytest"):
 
         except HTTPException:
             raise
-        except Exception as e:
+        except (ValueError, RuntimeError, SQLAlchemyError) as e:
+            logger.exception("Unhandled error")
             db_manager.update_run_status(run.id, "error", f"Execution error: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))
 
@@ -275,7 +285,8 @@ async def run_task(task_id: int, test_command: str = "pytest"):
 
     except HTTPException:
         raise
-    except Exception as e:
+    except (ValueError, RuntimeError, SQLAlchemyError) as e:
+        logger.exception("Unhandled error")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -364,7 +375,8 @@ async def create_pr(task_id: int, title: str = None, base: str = "main"):
 
     except HTTPException:
         raise
-    except Exception as e:
+    except (ValueError, RuntimeError, SQLAlchemyError) as e:
+        logger.exception("Unhandled error")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -425,7 +437,8 @@ async def list_runs(
         
         return result
 
-    except Exception as e:
+    except (ValueError, RuntimeError, SQLAlchemyError) as e:
+        logger.exception("Unhandled error")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -495,7 +508,8 @@ async def get_run_detail(run_id: int):
         
     except HTTPException:
         raise
-    except Exception as e:
+    except (ValueError, RuntimeError, SQLAlchemyError) as e:
+        logger.exception("Unhandled error")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -536,7 +550,8 @@ async def check_guardrails(content: str = Form(...), content_type: str = Form("c
 
     except HTTPException:
         raise
-    except Exception as e:
+    except (ValueError, RuntimeError, SQLAlchemyError) as e:
+        logger.exception("Unhandled error")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -571,7 +586,8 @@ async def get_run_integrity(run_id: int):
 
     except HTTPException:
         raise
-    except Exception as e:
+    except (ValueError, RuntimeError, SQLAlchemyError) as e:
+        logger.exception("Unhandled error")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -609,7 +625,8 @@ async def submit_integrity_answers(run_id: int, answers: str = Form(...)):
 
     except HTTPException:
         raise
-    except Exception as e:
+    except (ValueError, RuntimeError, SQLAlchemyError) as e:
+        logger.exception("Unhandled error")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -666,7 +683,8 @@ async def get_integrity_metrics():
             ]
         }
         
-    except Exception as e:
+    except (ValueError, RuntimeError, SQLAlchemyError) as e:
+        logger.exception("Unhandled error")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -695,7 +713,8 @@ async def get_integrity_rules():
             "last_updated": "2024-01-01T00:00:00Z"
         }
         
-    except Exception as e:
+    except (ValueError, RuntimeError, SQLAlchemyError) as e:
+        logger.exception("Unhandled error")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -736,7 +755,8 @@ async def approve_run(run_id: int, request: ApproveRunRequest):
         
     except HTTPException:
         raise
-    except Exception as e:
+    except (ValueError, RuntimeError, SQLAlchemyError) as e:
+        logger.exception("Unhandled error")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -773,7 +793,8 @@ async def reject_run(run_id: int, request: RejectRunRequest):
         
     except HTTPException:
         raise
-    except Exception as e:
+    except (ValueError, RuntimeError, SQLAlchemyError) as e:
+        logger.exception("Unhandled error")
         raise HTTPException(status_code=500, detail=str(e))
 
 

@@ -72,7 +72,7 @@ class TestMainComprehensive:
     @patch('src.main.get_db_manager')
     def test_create_task_error(self, mock_db_manager):
         """Test create task endpoint error."""
-        mock_db_manager.return_value.create_task.side_effect = Exception("DB error")
+        mock_db_manager.return_value.create_task.side_effect = RuntimeError("DB error")
         
         response = self.client.post("/tasks", json={"task_text": "test task"})
         
@@ -135,7 +135,7 @@ class TestMainComprehensive:
     @patch('src.main.get_db_manager')
     def test_list_tasks_error(self, mock_db_manager):
         """Test list tasks endpoint error."""
-        mock_db_manager.return_value.list_tasks.side_effect = Exception("DB error")
+        mock_db_manager.return_value.list_tasks.side_effect = RuntimeError("DB error")
         
         response = self.client.get("/tasks")
         
@@ -176,7 +176,7 @@ class TestMainComprehensive:
     @patch('src.main.prompt_builder')
     def test_build_prompt_error(self, mock_prompt_builder):
         """Test build prompt endpoint error."""
-        mock_prompt_builder.build_task_prompt.side_effect = Exception("Build error")
+        mock_prompt_builder.build_task_prompt.side_effect = ValueError("Build error")
         
         response = self.client.post("/prompts/build", data={"task_description": "test task"})
         
@@ -316,7 +316,7 @@ class TestMainComprehensive:
     @patch('src.main.get_db_manager')
     def test_list_runs_error(self, mock_db_manager):
         """Test list runs endpoint error."""
-        mock_db_manager.return_value.list_runs.side_effect = Exception("DB error")
+        mock_db_manager.return_value.list_runs.side_effect = RuntimeError("DB error")
         
         response = self.client.get("/runs")
         
@@ -362,7 +362,7 @@ class TestMainComprehensive:
     @patch('src.main.get_db_manager')
     def test_get_run_error(self, mock_db_manager):
         """Test get run endpoint error."""
-        mock_db_manager.return_value.get_run.side_effect = Exception("DB error")
+        mock_db_manager.return_value.get_run.side_effect = RuntimeError("DB error")
         
         response = self.client.get("/runs/1")
         
