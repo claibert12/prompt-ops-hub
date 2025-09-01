@@ -179,3 +179,5 @@ Thumbs.db
 logs/
 temp/
 tmp/
+# Node.js dependencies
+**/node_modules/
