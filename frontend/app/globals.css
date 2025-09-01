@@ -6,6 +6,9 @@
   html {
     font-family: system-ui, sans-serif;
   }
+  body {
+    @apply bg-gray-50 text-gray-900;
+  }
 }
 
 @layer components {
@@ -22,6 +25,6 @@
   }
   
   .card {
-    @apply bg-white shadow rounded-lg p-6;
+    @apply bg-white border border-gray-200 rounded-lg shadow-sm p-6;
   }
-} 
+}
