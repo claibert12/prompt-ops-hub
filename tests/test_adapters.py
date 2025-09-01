@@ -153,7 +153,7 @@ class TestGitHubAdapter:
         mock_result = Mock()
         mock_result.returncode = 1
         mock_result.stderr = "Branch already exists"
-        mock_run.side_effect = Exception("Git error")
+        mock_run.side_effect = RuntimeError("Git error")
 
         result = self.adapter.create_branch("test-branch")
 

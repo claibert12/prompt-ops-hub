@@ -4,6 +4,8 @@
 import typer
 import os
 from pathlib import Path
+import logging
+from sqlalchemy.exc import SQLAlchemyError
 
 from src.core.db import get_db_manager
 from src.core.guardrails import guardrails
@@ -18,6 +20,8 @@ from src.cli_init.project_scaffold import ProjectScaffold
 from src.cli_snippet.ci_snippet import CISnippetGenerator
 
 app = typer.Typer(help="Prompt Ops Hub CLI")
+
+logger = logging.getLogger(__name__)
 
 
 @app.command()
@@ -51,7 +55,8 @@ def task(
             typer.echo(f"\nTask saved with ID: {task.id}")
             typer.echo(f"Created at: {task.created_at}")
 
-    except Exception as e:
+    except (ValueError, RuntimeError, SQLAlchemyError) as e:
+        logger.exception("Unhandled error")
         typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
 
@@ -92,7 +97,8 @@ def list(
 
             typer.echo("-" * 40)
 
-    except Exception as e:
+    except (ValueError, RuntimeError, SQLAlchemyError) as e:
+        logger.exception("Unhandled error")
         typer.echo(f"❌ Error: {e}", err=True)
         raise typer.Exit(1)
 
@@ -123,7 +129,8 @@ def show(
         typer.echo(task.built_prompt)
         typer.echo("=" * 80)
 
-    except Exception as e:
+    except (ValueError, RuntimeError, SQLAlchemyError) as e:
+        logger.exception("Unhandled error")
         typer.echo(f"❌ Error: {e}", err=True)
         raise typer.Exit(1)
 
@@ -147,7 +154,8 @@ def delete(
             typer.echo(f"❌ Task {task_id} not found.")
             raise typer.Exit(1)
 
-    except Exception as e:
+    except (ValueError, RuntimeError, SQLAlchemyError) as e:
+        logger.exception("Unhandled error")
         typer.echo(f"❌ Error: {e}", err=True)
         raise typer.Exit(1)
 
@@ -159,7 +167,8 @@ def init():
         db_manager = get_db_manager()
         db_manager.create_tables()
         typer.echo("Database initialized successfully")
-    except Exception as e:
+    except (ValueError, RuntimeError, SQLAlchemyError) as e:
+        logger.exception("Unhandled error")
         typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
 
@@ -233,12 +242,14 @@ def run_task(
                 typer.echo(f"❌ Tests failed: {test_result.error_message}")
                 raise typer.Exit(1)
 
-        except Exception as e:
+        except (ValueError, RuntimeError, SQLAlchemyError) as e:
+            logger.exception("Unhandled error")
             db_manager.update_run_status(run.id, "error", f"Execution error: {str(e)}")
             typer.echo(f"❌ Execution error: {str(e)}")
             raise typer.Exit(1)
 
-    except Exception as e:
+    except (ValueError, RuntimeError, SQLAlchemyError) as e:
+        logger.exception("Unhandled error")
         typer.echo(f"❌ Error: {e}", err=True)
         raise typer.Exit(1)
 
@@ -330,7 +341,8 @@ def pr(
             typer.echo(f"❌ Failed to create PR: {pr_result.error_message}")
             raise typer.Exit(1)
 
-    except Exception as e:
+    except (ValueError, RuntimeError, SQLAlchemyError) as e:
+        logger.exception("Unhandled error")
         typer.echo(f"❌ Error: {e}", err=True)
         raise typer.Exit(1)
 
@@ -369,7 +381,8 @@ def runs(
 
             typer.echo("-" * 40)
 
-    except Exception as e:
+    except (ValueError, RuntimeError, SQLAlchemyError) as e:
+        logger.exception("Unhandled error")
         typer.echo(f"❌ Error: {e}", err=True)
         raise typer.Exit(1)
 
@@ -411,7 +424,8 @@ def expand(
 
         typer.echo("=" * 80)
 
-    except Exception as e:
+    except (ValueError, RuntimeError, SQLAlchemyError) as e:
+        logger.exception("Unhandled error")
         typer.echo(f"❌ Error: {e}", err=True)
         raise typer.Exit(1)
 
@@ -447,7 +461,8 @@ def run_auto(
                 typer.echo(f"  - Final error: {result.escalation_payload.get('final_error', 'Unknown')}")
                 typer.echo(f"  - Recommended action: {result.escalation_payload.get('recommended_action', 'Unknown')}")
 
-    except Exception as e:
+    except (ValueError, RuntimeError, SQLAlchemyError) as e:
+        logger.exception("Unhandled error")
         typer.echo(f"❌ Error: {e}", err=True)
         raise typer.Exit(1)
 
@@ -483,7 +498,8 @@ def clarify(
             typer.echo(f"Error: {result.error_message}")
             raise typer.Exit(1)
 
-    except Exception as e:
+    except (ValueError, RuntimeError, SQLAlchemyError) as e:
+        logger.exception("Unhandled error")
         typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
 
@@ -529,7 +545,8 @@ def policy_check(
         if not result.allowed:
             raise typer.Exit(1)
 
-    except Exception as e:
+    except (ValueError, RuntimeError, SQLAlchemyError) as e:
+        logger.exception("Unhandled error")
         typer.echo(f"❌ Error: {e}", err=True)
         raise typer.Exit(1)
 
@@ -576,7 +593,8 @@ def integrity(
 
         typer.echo("=" * 80)
 
-    except Exception as e:
+    except (ValueError, RuntimeError, SQLAlchemyError) as e:
+        logger.exception("Unhandled error")
         typer.echo(f"❌ Error: {e}", err=True)
         raise typer.Exit(1)
 
@@ -616,7 +634,8 @@ def answer(
         # Store answers (in a real implementation, this would update the run)
         typer.echo("answered")
 
-    except Exception as e:
+    except (ValueError, RuntimeError, SQLAlchemyError) as e:
+        logger.exception("Unhandled error")
         typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
 
@@ -657,7 +676,8 @@ def init_project(
                 typer.echo(f"  - {error}")
             raise typer.Exit(1)
     
-    except Exception as e:
+    except (ValueError, RuntimeError, SQLAlchemyError) as e:
+        logger.exception("Unhandled error")
         typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
 
@@ -708,7 +728,8 @@ def ci_snippet(
             typer.echo(f"   Integrity gates: {len(summary['integrity_gates'])}")
             typer.echo(f"   Hash: {summary['hash']}")
     
-    except Exception as e:
+    except (ValueError, RuntimeError, SQLAlchemyError) as e:
+        logger.exception("Unhandled error")
         typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1)
 

@@ -35,7 +35,7 @@ class TestCLIComprehensive:
     @patch('src.cli.get_db_manager')
     def test_cli_init_error(self, mock_db):
         """Test CLI init command error."""
-        mock_db.return_value.create_tables.side_effect = Exception("DB error")
+        mock_db.return_value.create_tables.side_effect = RuntimeError("DB error")
         
         result = self.runner.invoke(app, ["init"])
         
@@ -72,7 +72,7 @@ class TestCLIComprehensive:
     @patch('src.cli.prompt_builder')
     def test_cli_task_error(self, mock_prompt_builder):
         """Test CLI task command error."""
-        mock_prompt_builder.build_task_prompt.side_effect = Exception("Build error")
+        mock_prompt_builder.build_task_prompt.side_effect = ValueError("Build error")
         
         result = self.runner.invoke(app, ["task", "Test task description"])
         
@@ -319,7 +319,7 @@ class TestCLIComprehensive:
     @patch('src.cli.spec_expander')
     def test_cli_expand_error(self, mock_expander):
         """Test CLI expand command error."""
-        mock_expander.expand_task.side_effect = Exception("Expand error")
+        mock_expander.expand_task.side_effect = ValueError("Expand error")
         
         result = self.runner.invoke(app, ["expand", "Test goal"])
         
@@ -387,7 +387,7 @@ class TestCLIComprehensive:
     @patch('src.cli.get_db_manager')
     def test_cli_clarify_not_found(self, mock_db, mock_regen):
         """Test CLI clarify command not found."""
-        mock_regen.clarify_and_continue.side_effect = Exception("Run not found")
+        mock_regen.clarify_and_continue.side_effect = RuntimeError("Run not found")
         
         # Mock database manager
         mock_db.return_value.create_tables.return_value = None
@@ -468,7 +468,7 @@ class TestCLIComprehensive:
     def test_cli_init_project_error(self, mock_scaffold):
         """Test CLI init-project command error."""
         mock_instance = MagicMock()
-        mock_instance.scaffold_project.side_effect = Exception("Project creation failed")
+        mock_instance.scaffold_project.side_effect = RuntimeError("Project creation failed")
         mock_scaffold.return_value = mock_instance
         
         result = self.runner.invoke(app, ["init-project", "demo-repo"])
