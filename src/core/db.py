@@ -395,17 +395,16 @@ class DatabaseManager:
             return False
 
 
-# Global database manager instance
-db_manager = None
+def get_db_manager() -> DatabaseManager:
+    """Create a new database manager instance.
 
-def get_db_manager():
-    """Get the global database manager instance, creating it if needed."""
-    global db_manager
-    if db_manager is None:
-        db_manager = DatabaseManager()
-    return db_manager
+    This avoids module-level globals to ensure thread safety when used in
+    web applications. Each caller receives an isolated manager that can
+    create sessions as needed.
+    """
+    return DatabaseManager()
+
 
 def reset_db_manager():
-    """Reset the global database manager instance."""
-    global db_manager
-    db_manager = None
+    """Compatibility function for previous API; no-op now."""
+    return None

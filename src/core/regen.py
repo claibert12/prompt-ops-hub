@@ -1,11 +1,15 @@
 """Regeneration loop for automatic task retry with failure analysis."""
 
+import asyncio
 import json
+import subprocess
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 
 from src.services.cursor_adapter import cursor_adapter
 from src.observer.observer import observer
+from src.agent.hooks import send_to_chatgpt
 
 from .db import get_db_manager
 from .guardrails import guardrails
@@ -136,11 +140,11 @@ class RegenLoop:
                 # Step 1: Build enhanced prompt
                 enhanced_prompt = self._build_enhanced_prompt(task, expanded_spec, current_loop, last_error)
 
-                # Step 2: Call model (stub for now)
+                # Step 2: Call model
                 llm_response = self._call_model(enhanced_prompt)
 
                 # Step 3: Build patch from LLM response
-                original_files = self._get_original_files()  # Stub - would get actual files
+                original_files = self._get_original_files()
                 patch_result = patch_builder.build_patch(original_files, llm_response)
 
                 if not patch_result.success:
@@ -334,42 +338,34 @@ This is regeneration attempt #{loop_count}. The previous attempt failed with the
         return enhanced_prompt
 
     def _call_model(self, prompt: str) -> str:
-        """Call the LLM model (stub implementation).
-        
-        Args:
-            prompt: Prompt to send to model
-            
-        Returns:
-            Model response
+        """Call the LLM model.
+
+        Falls back to a stubbed response if the LLM call fails.
         """
-        # This is a stub - in a real implementation, this would call the actual model
-        # For now, return a mock response that would pass tests
-        return """
-Here's the implementation:
-
-```python src/main.py
-def new_feature():
-    \"\"\"Implement the requested feature.\"\"\"
-    # This is a mock implementation that would pass tests
-    return "success"
-
-def test_new_feature():
-    \"\"\"Test the new feature.\"\"\"
-    assert new_feature() == "success"
-```
-"""
+        try:
+            return asyncio.run(send_to_chatgpt(prompt))
+        except Exception as exc:  # pragma: no cover - network issues
+            return f"# Stub response for: {prompt[:50]}...\n\nLLM call failed: {exc}."
 
     def _get_original_files(self) -> dict[str, str]:
-        """Get original file contents (stub implementation).
-        
-        Returns:
-            Dict of file_path -> file_content
+        """Get original file contents for the repository.
+
+        Returns a mapping of tracked file paths to their current contents.
+
         """
-        # This is a stub - in a real implementation, this would read actual files
-        return {
-            "src/main.py": "# Original file content\n",
-            "tests/test_main.py": "# Original test content\n"
-        }
+        files: dict[str, str] = {}
+        try:
+            result = subprocess.run(["git", "ls-files"], capture_output=True, text=True, check=True)
+            for line in result.stdout.splitlines():
+                path = Path(line)
+                if path.exists() and path.is_file():
+                    try:
+                        files[line] = path.read_text()
+                    except UnicodeDecodeError:
+                        continue
+        except Exception:
+            pass
+        return files
 
     def _create_escalation_payload(self, task, expanded_spec: ExpandedSpec, loop_count: int, last_error: str) -> dict:
         """Create escalation payload for failed regeneration.

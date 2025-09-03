@@ -38,7 +38,6 @@ def run_mutation_tests() -> int:
     # Check if mutmut is installed
     if not check_mutmut_installed():
         print("❌ mutmut not installed. Install with: pip install mutmut")
-        print("💡 TODO: Add mutmut to dev dependencies")
         return 1
     
     # Check if config exists
@@ -53,8 +52,8 @@ def run_mutation_tests() -> int:
         
         result = subprocess.run(
             [
-                "mutmut", 
-                "run", 
+                "mutmut",
+                "run",
                 "--paths-to-mutate=src/core/spec_expander.py,src/core/patch_builder.py,src/core/regen.py,src/core/guardrails.py",
                 "--test-command=python -m pytest tests/",
                 "--backup-dir=.mutmut-cache",
@@ -64,28 +63,27 @@ def run_mutation_tests() -> int:
             text=True,
             check=False
         )
-        
-        if result.returncode == 0:
-            print("\n✅ Mutation tests completed successfully")
-            
-            # Show results summary
-            try:
-                summary_result = subprocess.run(
-                    ["mutmut", "results"],
-                    capture_output=True,
-                    text=True,
-                    check=False
-                )
-                if summary_result.returncode == 0:
-                    print("\n📊 Mutation test results:")
-                    print(summary_result.stdout)
-            except Exception:
-                pass
-            
-            return 0
-        else:
+
+        if result.returncode != 0:
             print(f"\n❌ Mutation tests failed with exit code: {result.returncode}")
             return 1
+
+        # Show results summary and fail if mutants survived
+        summary_result = subprocess.run(
+            ["mutmut", "results"],
+            capture_output=True,
+            text=True,
+            check=False
+        )
+        if summary_result.returncode == 0:
+            print("\n📊 Mutation test results:")
+            print(summary_result.stdout)
+            if "survived 0" not in summary_result.stdout:
+                print("❌ Surviving mutants detected")
+                return 1
+
+        print("\n✅ Mutation tests completed successfully")
+        return 0
     
     except Exception as e:
         print(f"❌ Error running mutation tests: {e}")
@@ -103,10 +101,6 @@ def main() -> int:
     
     # Run mutation tests
     exit_code = run_mutation_tests()
-    
-    if exit_code == 0:
-        print("\n💡 Note: Mutation tests are not yet enforced in CI")
-        print("   TODO: Add to CI pipeline with appropriate thresholds")
     
     return exit_code
 

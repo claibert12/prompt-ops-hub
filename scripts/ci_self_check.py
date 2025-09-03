@@ -13,6 +13,8 @@ from pathlib import Path
 from typing import Tuple, List, Dict
 import os
 
+from integrity_core.diff_coverage import DiffCoverageChecker
+
 
 class CISelfCheck:
     """CI Self-Verification orchestrator."""
@@ -173,8 +175,8 @@ class CISelfCheck:
             # Gather context
             coverage = self._get_coverage_percent()
             diff_coverage = self._get_diff_coverage_percent()
-            test_deletions = False  # TODO: wire up real check
-            threshold_lowered = False  # TODO: wire up real check
+            test_deletions = self._tests_deleted()
+            threshold_lowered = self._threshold_lowered()
             from integrity_core.observer import Observer
             observer = Observer()
             integrity_score = observer.calculate_integrity_score()
@@ -211,14 +213,55 @@ class CISelfCheck:
         return line_rate * 100
 
     def _get_diff_coverage_percent(self) -> float:
-        # TODO: Implement real diff coverage percent extraction
-        # For now, assume 100% if diff_coverage_check.py passes
-        result = subprocess.run([
-            'python', 'scripts/diff_coverage_check.py'
-        ], capture_output=True, text=True, cwd=self.repo_root)
-        if result.returncode == 0:
-            return 100.0
-        return 0.0
+        """Calculate diff coverage percentage from coverage.xml."""
+        try:
+            checker = DiffCoverageChecker()
+            diff_files = checker.get_diff_files()
+            if not diff_files:
+                return 100.0
+            coverage_data = checker.parse_coverage_xml("coverage.xml")
+            total_lines = 0
+            covered_lines = 0
+            for file_path in diff_files:
+                changed = checker.get_changed_lines(file_path)
+                total_lines += len(changed)
+                covered = coverage_data.get(file_path, set())
+                covered_lines += len(changed & covered)
+            if total_lines == 0:
+                return 100.0
+            return (covered_lines / total_lines) * 100
+        except Exception:
+            return 0.0
+
+    def _tests_deleted(self) -> bool:
+        """Detect if any tests were deleted in the current diff."""
+        try:
+            result = subprocess.run(
+                ['git', 'diff', '--name-status', 'origin/main'],
+                capture_output=True,
+                text=True,
+                cwd=self.repo_root,
+            )
+            for line in result.stdout.splitlines():
+                parts = line.split('\t', 1)
+                if len(parts) == 2 and parts[0] == 'D' and parts[1].startswith('tests/'):
+                    return True
+            return False
+        except Exception:
+            return False
+
+    def _threshold_lowered(self) -> bool:
+        """Detect if coverage thresholds have been lowered."""
+        try:
+            result = subprocess.run(
+                ['python', 'scripts/check_thresholds.py'],
+                capture_output=True,
+                text=True,
+                cwd=self.repo_root,
+            )
+            return result.returncode != 0
+        except Exception:
+            return True
     
     def check_observer(self) -> Tuple[bool, str]:
         """Check observer integrity score."""

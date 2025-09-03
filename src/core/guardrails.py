@@ -302,17 +302,18 @@ class Guardrails:
 
         return chunks
 
-    def check_and_auto_split(self, diff_str: str) -> tuple[list[Violation], list[str]]:
+    def check_and_auto_split(self, diff_str: str) -> tuple[list[Violation], list[str], dict]:
         """Check diff for violations and auto-split if too large.
-        
+
         Args:
             diff_str: Diff content to check
-            
+
         Returns:
-            Tuple of (violations, split_chunks)
+            Tuple of (violations, split_chunks, metadata)
         """
         violations = self.check_diff(diff_str)
-        split_chunks = []
+        split_chunks: list[str] = []
+        metadata: dict = {}
 
         # Check if diff is too large
         size_violations = [v for v in violations if v.type == ViolationType.DIFF_TOO_LARGE]
@@ -320,13 +321,12 @@ class Guardrails:
         if size_violations:
             # Auto-split the diff
             split_chunks = self.auto_split_large_diff(diff_str, self.max_diff_size)
+            metadata = {
+                "original_size": len(diff_str.splitlines()),
+                "num_chunks": len(split_chunks),
+            }
 
-            # Add TODO comments to each chunk
-            for i, chunk in enumerate(split_chunks):
-                todo_comment = f"\n# TODO(guardrails): This is part {i+1} of a split diff. Original size: {len(diff_str.split())} lines"
-                split_chunks[i] = chunk + todo_comment
-
-        return violations, split_chunks
+        return violations, split_chunks, metadata
 
     def check_semgrep_results(self, semgrep_results: dict) -> list[Violation]:
         """Check semgrep results for violations.
