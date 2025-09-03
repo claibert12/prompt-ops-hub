@@ -37,6 +37,11 @@ A project with integrity gates enforced.
    python -c "from integrity_core import TamperChecker; TamperChecker().check()"
    ```
 
+4. Run mutation tests:
+   ```bash
+   python scripts/run_mutation_tests.py
+   ```
+
 ## Integrity Gates
 
 ### Coverage Requirements
@@ -57,6 +62,15 @@ A project with integrity gates enforced.
 ## Configuration
 
 Edit `config/guardrails.conf` to customize integrity gate settings.
+
+### Environment Variables
+
+- `JWT_SECRET` – Secret key for verifying JSON Web Tokens used in API authentication.
+- `JWT_ALGORITHM` – (Optional) JWT signing algorithm, default is `HS256`.
+- `ALLOWED_ORIGINS` – Comma-separated list of origins allowed by the CORS middleware.
+- `LOG_LEVEL` – Application log level (e.g., `INFO`, `DEBUG`).
+- `SENTRY_DSN` – (Optional) DSN for sending error telemetry to Sentry.
+- `GITHUB_TOKEN` – Token used by the GitHub adapter for creating branches and pull requests.
 
 ## Contributing
 

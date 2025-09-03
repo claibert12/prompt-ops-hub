@@ -3,8 +3,11 @@
 import asyncio
 import json
 import logging
-from typing import Dict, Any, Optional, List
+import os
 from dataclasses import dataclass
+from typing import Dict, Any, Optional, List
+
+from openai import OpenAI
 
 logger = logging.getLogger(__name__)
 
@@ -30,30 +33,63 @@ class LLMResponse:
 
 class LLMHooks:
     """Hooks for LLM service integration."""
-    
-    def __init__(self, api_key: Optional[str] = None):
-        self.api_key = api_key or "stub_key"
-        self.base_url = "https://api.openai.com/v1"  # Default to OpenAI
-    
+
+    def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None):
+        self.api_key = api_key or os.getenv("OPENAI_API_KEY") or "stub_key"
+        self.base_url = base_url or os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
+        self.client: OpenAI | None = None
+        if self.api_key != "stub_key":
+            try:
+                self.client = OpenAI(api_key=self.api_key, base_url=self.base_url)
+            except Exception as exc:  # pragma: no cover - defensive
+                logger.warning("Failed to init OpenAI client: %s", exc)
+                self.client = None
+
     async def send_request(self, request: LLMRequest) -> LLMResponse:
         """Send request to LLM service.
-        
-        TODO: Implement actual HTTP calls to ChatGPT/Claude API
-        For now, returns a stub response.
+
+        Uses real OpenAI API when credentials are available; otherwise
+        returns a stubbed response for testing.
         """
-        logger.info(f"Sending request to {request.model}")
-        
-        # Simulate API call delay
+        logger.info("Sending request to %s", request.model)
+
+        if self.client:
+            try:
+                response = self.client.chat.completions.create(
+                    model=request.model,
+                    messages=[
+                        {"role": "system", "content": request.system_message or ""},
+                        {"role": "user", "content": request.prompt},
+                    ],
+                    temperature=request.temperature,
+                    max_tokens=request.max_tokens,
+                )
+                message = response.choices[0].message.content
+                usage = {
+                    "prompt_tokens": response.usage.prompt_tokens,
+                    "completion_tokens": response.usage.completion_tokens,
+                    "total_tokens": response.usage.total_tokens,
+                }
+                finish_reason = response.choices[0].finish_reason or "stop"
+                return LLMResponse(
+                    content=message,
+                    model=request.model,
+                    usage=usage,
+                    finish_reason=finish_reason,
+                )
+            except Exception as exc:  # pragma: no cover - network/credentials
+                logger.warning("LLM request failed: %s", exc)
+
         await asyncio.sleep(0.1)
-        
-        # Stub response - replace with actual API call
-        stub_content = f"# Stub response for: {request.prompt[:50]}...\n\nThis is a placeholder response. Implement actual LLM API integration here."
-        
+        stub_content = (
+            f"# Stub response for: {request.prompt[:50]}...\n\n"
+            "This is a placeholder response. Implement actual LLM API integration here."
+        )
         return LLMResponse(
             content=stub_content,
             model=request.model,
             usage={"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150},
-            finish_reason="stop"
+            finish_reason="stop",
         )
     
     async def send_chat_request(self, messages: List[Dict[str, str]], **kwargs) -> LLMResponse:
