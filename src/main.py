@@ -2,21 +2,63 @@
 
 import os
 import json
+import subprocess
+from dataclasses import asdict
+from urllib.parse import urlparse
+from typing import Callable
 
-from fastapi import FastAPI, HTTPException, Form, Query, Body
+from fastapi import Body, Depends, FastAPI, Form, HTTPException, Query
 import logging
 from sqlalchemy.exc import SQLAlchemyError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jose import JWTError, jwt
 from pydantic import BaseModel
 
 from src.core.db import get_db_manager
 from src.core.guardrails import guardrails
+from src.core.logging_config import setup_logging
 from src.core.models import RunCreate, RunResponse, TaskCreate, TaskResponse
 from src.core.prompt_builder import prompt_builder
 from src.services.cursor_adapter import cursor_adapter
 from src.services.github_adapter import get_github_adapter
+from src.observer.observer import Observer
+
+setup_logging()
 
 logger = logging.getLogger(__name__)
+
+security = HTTPBearer(auto_error=False)
+
+
+JWT_SECRET = os.getenv("JWT_SECRET")
+JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+
+
+def require_role(*roles: str) -> Callable:
+    """Dependency that validates a JWT and optionally enforces roles."""
+
+    def checker(credentials: HTTPAuthorizationCredentials = Depends(security)):
+        if JWT_SECRET is None:
+            return {"role": "user"}
+
+        if credentials is None:
+            raise HTTPException(status_code=401, detail="Missing credentials")
+
+        token = credentials.credentials
+        try:
+            payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        except JWTError:
+            raise HTTPException(status_code=401, detail="Invalid token")
+
+        role = payload.get("role", "user")
+        if roles and role not in roles:
+            raise HTTPException(status_code=403, detail="Insufficient role")
+        return payload
+
+    return checker
+
+observer = Observer()
 
 # Pydantic models for request bodies
 class ApproveRunRequest(BaseModel):
@@ -26,6 +68,11 @@ class RejectRunRequest(BaseModel):
     reason: str
     regenerate: str = "false"
 
+
+class RunTaskRequest(BaseModel):
+    patch: str
+    test_command: str = "pytest"
+
 # Initialize FastAPI app
 app = FastAPI(
     title="Prompt Ops Hub",
@@ -33,10 +80,27 @@ app = FastAPI(
     version="0.1.0"
 )
 
-# Add CORS middleware
+def get_allowed_origins() -> list[str]:
+    """Get validated allowed origins from environment variable.
+
+    Returns a list of origins with scheme and hostname validated. If the
+    environment variable is unset or contains no valid entries, defaults to
+    ["http://localhost"].
+    """
+    raw = os.getenv("ALLOWED_ORIGINS", "")
+    origins: list[str] = []
+    for origin in [o.strip() for o in raw.split(",") if o.strip()]:
+        parsed = urlparse(origin)
+        if parsed.scheme in ("http", "https") and parsed.hostname:
+            origins.append(f"{parsed.scheme}://{parsed.hostname}")
+    return origins or ["http://localhost"]
+
+
+allowed_origins = get_allowed_origins()
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -60,8 +124,16 @@ async def root():
     }
 
 
-@app.post("/tasks", response_model=TaskResponse, status_code=201)
-async def create_task(task_create: TaskCreate):
+@app.post(
+    "/tasks",
+    response_model=TaskResponse,
+    status_code=201,
+    dependencies=[Depends(require_role("user"))]
+)
+async def create_task(
+    task_create: TaskCreate,
+    db_manager = Depends(get_db_manager),
+):
     """Create a new task and build a prompt.
     
     Args:
@@ -75,7 +147,6 @@ async def create_task(task_create: TaskCreate):
         built_prompt = prompt_builder.build_task_prompt(task_create.task_text)
 
         # Create task in database
-        db_manager = get_db_manager()
         task = db_manager.create_task(task_create, built_prompt)
 
         # Convert to response model
@@ -91,8 +162,15 @@ async def create_task(task_create: TaskCreate):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/tasks", response_model=list[TaskResponse])
-async def list_tasks(limit: int = None):
+@app.get(
+    "/tasks",
+    response_model=list[TaskResponse],
+    dependencies=[Depends(require_role("user"))]
+)
+async def list_tasks(
+    limit: int = None,
+    db_manager = Depends(get_db_manager),
+):
     """List all tasks.
     
     Args:
@@ -102,7 +180,6 @@ async def list_tasks(limit: int = None):
         List of tasks
     """
     try:
-        db_manager = get_db_manager()
         tasks = db_manager.list_tasks(limit=limit)
 
         return [
@@ -120,8 +197,15 @@ async def list_tasks(limit: int = None):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/tasks/{task_id}", response_model=TaskResponse)
-async def get_task(task_id: int):
+@app.get(
+    "/tasks/{task_id}",
+    response_model=TaskResponse,
+    dependencies=[Depends(require_role("user"))]
+)
+async def get_task(
+    task_id: int,
+    db_manager = Depends(get_db_manager),
+):
     """Get a specific task by ID.
     
     Args:
@@ -131,7 +215,6 @@ async def get_task(task_id: int):
         Task details
     """
     try:
-        db_manager = get_db_manager()
         task = db_manager.get_task(task_id)
 
         if not task:
@@ -151,8 +234,15 @@ async def get_task(task_id: int):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.delete("/tasks/{task_id}", status_code=204)
-async def delete_task(task_id: int):
+@app.delete(
+    "/tasks/{task_id}",
+    status_code=204,
+    dependencies=[Depends(require_role("user"))]
+)
+async def delete_task(
+    task_id: int,
+    db_manager = Depends(get_db_manager),
+):
     """Delete a task.
     
     Args:
@@ -162,7 +252,6 @@ async def delete_task(task_id: int):
         No content on success
     """
     try:
-        db_manager = get_db_manager()
         success = db_manager.delete_task(task_id)
         
         if not success:
@@ -177,7 +266,10 @@ async def delete_task(task_id: int):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/prompts/build")
+@app.post(
+    "/prompts/build",
+    dependencies=[Depends(require_role("user"))]
+)
 async def build_prompt(task_description: str = Form(...)):
     """Build a prompt without saving to database.
     
@@ -206,8 +298,16 @@ async def health_check():
     return {"status": "healthy"}
 
 
-@app.post("/tasks/{task_id}/run", response_model=RunResponse)
-async def run_task(task_id: int, test_command: str = "pytest"):
+@app.post(
+    "/tasks/{task_id}/run",
+    response_model=RunResponse,
+    dependencies=[Depends(require_role("user"))]
+)
+async def run_task(
+    task_id: int,
+    request: RunTaskRequest,
+    db_manager = Depends(get_db_manager),
+):
     """Execute a task through Cursor adapter and run tests.
     
     Args:
@@ -218,8 +318,6 @@ async def run_task(task_id: int, test_command: str = "pytest"):
         Run details
     """
     try:
-        db_manager = get_db_manager()
-
         # Get task
         task = db_manager.get_task(task_id)
         if not task:
@@ -237,14 +335,20 @@ async def run_task(task_id: int, test_command: str = "pytest"):
                     db_manager.update_run_status(run.id, "error", "Execution blocked by guardrails")
                     raise HTTPException(status_code=400, detail="Execution blocked by guardrails")
 
-            # Simulate patch application (stub for now)
-            dummy_patch = f"# Patch for task {task_id}\n# This is a simulated patch\n"
+            patch = request.patch
 
             # Check guardrails on the patch
-            patch_violations = guardrails.check_diff(dummy_patch)
+            patch_violations = guardrails.check_diff(patch)
+            if patch_violations:
+                if guardrails.should_block_execution(patch_violations):
+                    db_manager.update_run_status(run.id, "error", "Patch blocked by guardrails")
+                    raise HTTPException(status_code=400, detail="Patch blocked by guardrails")
+                else:
+                    summary = guardrails.get_violation_summary(patch_violations)
+                    db_manager.update_run_status(run.id, "pending", summary)
 
             # Apply patch via Cursor adapter
-            apply_result = cursor_adapter.apply_patch(dummy_patch)
+            apply_result = cursor_adapter.apply_patch(patch)
             if not apply_result.success:
                 # In test environment, files might not exist - treat as success
                 if "cannot find the file specified" in apply_result.error_message.lower():
@@ -256,11 +360,25 @@ async def run_task(task_id: int, test_command: str = "pytest"):
                 db_manager.update_run_status(run.id, "applied", "Patch applied successfully")
 
             # Run tests
-            test_result = cursor_adapter.run_tests(test_command)
+            test_result = cursor_adapter.run_tests(request.test_command)
 
             if test_result.success:
-                db_manager.update_run_status(run.id, "tests_passed",
-                    f"Tests passed: {test_result.passed}/{test_result.test_count}")
+                db_manager.update_run_status(
+                    run.id,
+                    "tests_passed",
+                    f"Tests passed: {test_result.passed}/{test_result.test_count}",
+                )
+
+                # Build integrity report
+                report = observer.build_integrity_report(
+                    str(run.id), {}
+                )
+                db_manager.update_run_integrity(
+                    run.id,
+                    report.score,
+                    json.dumps([asdict(v) for v in report.violations]),
+                    json.dumps(report.questions),
+                )
             else:
                 db_manager.update_run_status(run.id, "tests_failed",
                     f"Tests failed: {test_result.error_message}")
@@ -290,8 +408,16 @@ async def run_task(task_id: int, test_command: str = "pytest"):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/tasks/{task_id}/pr")
-async def create_pr(task_id: int, title: str = None, base: str = "main"):
+@app.post(
+    "/tasks/{task_id}/pr",
+    dependencies=[Depends(require_role("admin"))]
+)
+async def create_pr(
+    task_id: int,
+    title: str = None,
+    base: str = "main",
+    db_manager = Depends(get_db_manager),
+):
     """Create a pull request for a task.
     
     Args:
@@ -303,8 +429,6 @@ async def create_pr(task_id: int, title: str = None, base: str = "main"):
         PR details
     """
     try:
-        db_manager = get_db_manager()
-
         # Get task
         task = db_manager.get_task(task_id)
         if not task:
@@ -327,35 +451,24 @@ async def create_pr(task_id: int, title: str = None, base: str = "main"):
         if not github_adapter.create_branch(branch_name):
             raise HTTPException(status_code=500, detail="Failed to create branch")
 
-        # Simulate committing changes
-        dummy_files = ["src/main.py"]  # This would be the actual changed files
-        commit_message = f"Implement task {task_id}: {task.task_text}"
+        # Gather actual changed files
+        result = subprocess.run(
+            ["git", "status", "--porcelain"],
+            capture_output=True,
+            text=True,
+            cwd=os.getcwd(),
+        )
+        files_changed = [line[3:] for line in result.stdout.splitlines() if line]
 
-        if not github_adapter.commit_and_push(dummy_files, commit_message):
+        if not files_changed:
+            raise HTTPException(status_code=400, detail="No changes to commit")
+
+        commit_message = f"Implement task {task_id}: {task.task_text}"
+        if not github_adapter.commit_and_push(files_changed, commit_message):
             raise HTTPException(status_code=500, detail="Failed to commit and push changes")
 
-        # Create PR
         pr_title = title or f"Task {task_id}: {task.task_text}"
-        pr_body = f"""
-## Task Implementation
-
-**Task ID**: {task_id}
-**Description**: {task.task_text}
-
-## Changes Made
-- Implemented the requested functionality
-- Added appropriate tests
-- Followed coding standards
-
-## Testing
-- All tests pass: {latest_run.logs}
-
-## Acceptance Criteria
-- [x] Task implementation follows the specified rules and constraints
-- [x] Code changes are properly tested with unit and integration tests
-- [x] No hardcoded secrets or sensitive information
-- [x] Configuration uses environment variables where appropriate
-        """
+        pr_body = f"Task {task_id}: {task.task_text}\n\nTests: {latest_run.logs}"
 
         pr_result = github_adapter.open_pr(pr_title, pr_body, branch_name, base)
 
@@ -380,16 +493,19 @@ async def create_pr(task_id: int, title: str = None, base: str = "main"):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/runs")
+@app.get(
+    "/runs",
+    dependencies=[Depends(require_role("user"))]
+)
 async def list_runs(
     task_id: int = Query(None, description="Filter by task ID"),
     status: str = Query(None, description="Filter by status"),
     integrity_min: float = Query(None, description="Minimum integrity score"),
-    limit: int = Query(None, description="Maximum number of runs to return")
+    limit: int = Query(None, description="Maximum number of runs to return"),
+    db_manager = Depends(get_db_manager),
 ):
     """List runs with optional filters."""
     try:
-        db_manager = get_db_manager()
         runs = db_manager.list_runs(task_id=task_id, limit=limit)
         
         # Apply filters
@@ -442,11 +558,16 @@ async def list_runs(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/runs/{run_id}")
-async def get_run_detail(run_id: int):
+@app.get(
+    "/runs/{run_id}",
+    dependencies=[Depends(require_role("user"))]
+)
+async def get_run_detail(
+    run_id: int,
+    db_manager = Depends(get_db_manager),
+):
     """Get detailed run information including integrity report and diff."""
     try:
-        db_manager = get_db_manager()
         run = db_manager.get_run(run_id)
         
         if not run:
@@ -513,7 +634,10 @@ async def get_run_detail(run_id: int):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/guardrails/check")
+@app.post(
+    "/guardrails/check",
+    dependencies=[Depends(require_role("user"))]
+)
 async def check_guardrails(content: str = Form(...), content_type: str = Form("code")):
     """Check content for guardrails violations.
     
@@ -555,8 +679,14 @@ async def check_guardrails(content: str = Form(...), content_type: str = Form("c
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/runs/{run_id}/integrity")
-async def get_run_integrity(run_id: int):
+@app.get(
+    "/runs/{run_id}/integrity",
+    dependencies=[Depends(require_role("user"))]
+)
+async def get_run_integrity(
+    run_id: int,
+    db_manager = Depends(get_db_manager),
+):
     """Get integrity report for a specific run.
     
     Args:
@@ -566,7 +696,6 @@ async def get_run_integrity(run_id: int):
         Integrity report
     """
     try:
-        db_manager = get_db_manager()
         run = db_manager.get_run(run_id)
 
         if not run:
@@ -591,8 +720,15 @@ async def get_run_integrity(run_id: int):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/runs/{run_id}/answers")
-async def submit_integrity_answers(run_id: int, answers: str = Form(...)):
+@app.post(
+    "/runs/{run_id}/answers",
+    dependencies=[Depends(require_role("user"))]
+)
+async def submit_integrity_answers(
+    run_id: int,
+    answers: str = Form(...),
+    db_manager = Depends(get_db_manager),
+):
     """Submit answers to integrity questions.
     
     Args:
@@ -603,7 +739,6 @@ async def submit_integrity_answers(run_id: int, answers: str = Form(...)):
         Success response
     """
     try:
-        db_manager = get_db_manager()
         run = db_manager.get_run(run_id)
 
         if not run:
@@ -630,11 +765,13 @@ async def submit_integrity_answers(run_id: int, answers: str = Form(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/metrics/integrity")
-async def get_integrity_metrics():
+@app.get(
+    "/metrics/integrity",
+    dependencies=[Depends(require_role("user"))]
+)
+async def get_integrity_metrics(db_manager = Depends(get_db_manager)):
     """Get integrity metrics across all runs."""
     try:
-        db_manager = get_db_manager()
         runs = db_manager.list_runs()
         
         if not runs:
@@ -688,7 +825,10 @@ async def get_integrity_metrics():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/integrity/rules")
+@app.get(
+    "/integrity/rules",
+    dependencies=[Depends(require_role("user"))]
+)
 async def get_integrity_rules():
     """Get integrity rules and policies."""
     try:
@@ -718,8 +858,15 @@ async def get_integrity_rules():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/runs/{run_id}/approve")
-async def approve_run(run_id: int, request: ApproveRunRequest):
+@app.post(
+    "/runs/{run_id}/approve",
+    dependencies=[Depends(require_role("admin"))]
+)
+async def approve_run(
+    run_id: int,
+    request: ApproveRunRequest,
+    db_manager = Depends(get_db_manager),
+):
     """Approve a run.
     
     Args:
@@ -730,7 +877,6 @@ async def approve_run(run_id: int, request: ApproveRunRequest):
         Updated run information
     """
     try:
-        db_manager = get_db_manager()
         run = db_manager.get_run(run_id)
         
         if not run:
@@ -760,8 +906,15 @@ async def approve_run(run_id: int, request: ApproveRunRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/runs/{run_id}/reject")
-async def reject_run(run_id: int, request: RejectRunRequest):
+@app.post(
+    "/runs/{run_id}/reject",
+    dependencies=[Depends(require_role("admin"))]
+)
+async def reject_run(
+    run_id: int,
+    request: RejectRunRequest,
+    db_manager = Depends(get_db_manager),
+):
     """Reject a run.
     
     Args:
@@ -772,7 +925,6 @@ async def reject_run(run_id: int, request: RejectRunRequest):
         Updated run information
     """
     try:
-        db_manager = get_db_manager()
         run = db_manager.get_run(run_id)
         
         if not run:

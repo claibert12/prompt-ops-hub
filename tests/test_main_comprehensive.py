@@ -6,6 +6,7 @@ import os
 from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
 from src.main import app
+from jose import jwt
 from src.core.db import get_db_manager, reset_db_manager
 
 
@@ -48,6 +49,23 @@ class TestMainComprehensive:
         assert "Prompt Ops Hub" in data["message"]
         assert data["version"] == "0.1.0"
         assert "phase" in data
+
+    def test_requires_token_when_secret_set(self):
+        """Endpoints should require JWT when secret configured."""
+        import src.main as main
+
+        main.JWT_SECRET = "testsecret"
+        client = TestClient(app)
+
+        # Missing token
+        response = client.get("/tasks")
+        assert response.status_code == 401
+
+        token = jwt.encode({"role": "user"}, "testsecret", algorithm="HS256")
+        response = client.get("/tasks", headers={"Authorization": f"Bearer {token}"})
+        assert response.status_code == 200
+
+        main.JWT_SECRET = None
 
     @patch('src.main.get_db_manager')
     @patch('src.main.prompt_builder')
@@ -203,7 +221,10 @@ class TestMainComprehensive:
         mock_cursor_adapter.apply_patch.return_value = MagicMock(success=True, error=None)
         mock_cursor_adapter.run_tests.return_value = MagicMock(success=True, output="test output")
         
-        response = self.client.post("/tasks/1/run", json={"test_command": "pytest"})
+        response = self.client.post(
+            "/tasks/1/run",
+            json={"test_command": "pytest", "patch": "diff"},
+        )
         
         assert response.status_code == 200
         data = response.json()
@@ -216,7 +237,10 @@ class TestMainComprehensive:
         """Test run task endpoint not found."""
         mock_db_manager.return_value.get_task.return_value = None
         
-        response = self.client.post("/tasks/999/run", json={"test_command": "pytest"})
+        response = self.client.post(
+            "/tasks/999/run",
+            json={"test_command": "pytest", "patch": "diff"},
+        )
         
         assert response.status_code == 404
         assert "not found" in response.json()["detail"]
@@ -236,7 +260,10 @@ class TestMainComprehensive:
         mock_guardrails.check_prompt.return_value = [MagicMock(type="SECURITY", severity="HIGH")]
         mock_guardrails.should_block_execution.return_value = True
         
-        response = self.client.post("/tasks/1/run", json={"test_command": "pytest"})
+        response = self.client.post(
+            "/tasks/1/run",
+            json={"test_command": "pytest", "patch": "diff"},
+        )
         
         assert response.status_code == 400
         assert "blocked by guardrails" in response.json()["detail"]
@@ -256,7 +283,10 @@ class TestMainComprehensive:
         mock_guardrails.check_prompt.return_value = []
         mock_cursor_adapter.apply_patch.return_value = MagicMock(success=False, error="Patch failed")
         
-        response = self.client.post("/tasks/1/run", json={"test_command": "pytest"})
+        response = self.client.post(
+            "/tasks/1/run",
+            json={"test_command": "pytest", "patch": "diff"},
+        )
         
         assert response.status_code == 500
         assert "Patch application failed" in response.json()["detail"]

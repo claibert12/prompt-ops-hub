@@ -2,67 +2,50 @@ import Link from 'next/link';
 
 export default function HomePage() {
   return (
-    <div className="space-y-8">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">
-          Prompt Ops Hub
-        </h1>
-        <p className="text-xl text-gray-600 mb-8">
-          Human-in-loop review and approval for AI-generated code changes
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="card">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-            Review Runs
-          </h2>
-          <p className="text-gray-600 mb-4">
-            Review and approve AI-generated code changes with integrity checks and human oversight.
+    <div className="space-y-16">
+      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary-600 to-primary-500 px-6 py-24 text-center text-white shadow-lg">
+        <div className="mx-auto max-w-2xl">
+          <h1 className="text-5xl font-bold tracking-tight sm:text-6xl">Prompt Ops Hub</h1>
+          <p className="mt-6 text-lg leading-8">
+            Human-in-the-loop review and approval for AI-generated code changes.
           </p>
-          <Link href="/runs" className="btn-primary inline-block">
-            View Runs
-          </Link>
+          <div className="mt-10 flex items-center justify-center gap-x-6">
+            <Link
+              href="/runs"
+              className="bg-white text-primary-600 hover:bg-gray-100 font-medium py-2 px-4 rounded-md"
+            >
+              View Runs
+            </Link>
+            <Link href="/integrity" className="text-sm font-semibold leading-6 text-white hover:underline">
+              Integrity Dashboard →
+            </Link>
+          </div>
         </div>
+      </section>
 
-        <div className="card">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-            Integrity Dashboard
-          </h2>
-          <p className="text-gray-600 mb-4">
-            Monitor integrity metrics, coverage trends, and violation patterns across all runs.
+      <section className="grid grid-cols-1 gap-8 md:grid-cols-3">
+        <div className="card text-center">
+          <div className="text-3xl mb-4">🤖</div>
+          <h3 className="text-xl font-semibold mb-2">AI Generation</h3>
+          <p className="text-gray-600">
+            Generate code patches with automatic tests and policy checks.
           </p>
-          <Link href="/integrity" className="btn-primary inline-block">
-            View Dashboard
-          </Link>
         </div>
-      </div>
-
-      <div className="card">
-        <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-          How it works
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">1. AI Generation</h3>
-            <p className="text-gray-600">
-              AI generates code changes based on task descriptions with automatic testing and integrity checks.
-            </p>
-          </div>
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">2. Human Review</h3>
-            <p className="text-gray-600">
-              Runs with low integrity scores require human approval before proceeding to PR creation.
-            </p>
-          </div>
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">3. Approval & Merge</h3>
-            <p className="text-gray-600">
-              Approved changes automatically create pull requests for final review and merge.
-            </p>
-          </div>
+        <div className="card text-center">
+          <div className="text-3xl mb-4">👩‍⚖️</div>
+          <h3 className="text-xl font-semibold mb-2">Human Review</h3>
+          <p className="text-gray-600">
+            Low-integrity runs are routed for manual approval and feedback.
+          </p>
         </div>
-      </div>
+        <div className="card text-center">
+          <div className="text-3xl mb-4">🚀</div>
+          <h3 className="text-xl font-semibold mb-2">Auto Merge</h3>
+          <p className="text-gray-600">
+            Approved changes create pull requests ready for merge.
+          </p>
+        </div>
+      </section>
     </div>
   );
-} 
+}

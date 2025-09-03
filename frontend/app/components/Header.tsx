@@ -2,21 +2,21 @@ import Link from 'next/link';
 
 export default function Header() {
   return (
-    <header className="bg-white border-b shadow-sm">
+    <header className="bg-gradient-to-r from-primary-700 to-primary-500 text-white shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        <Link href="/" className="text-xl font-semibold text-gray-900">
+        <Link href="/" className="text-2xl font-bold tracking-tight">
           Prompt Ops Hub
         </Link>
-        <nav className="flex items-center space-x-4">
+        <nav className="flex items-center space-x-2">
           <Link
             href="/runs"
-            className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
+            className="px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10"
           >
             Runs
           </Link>
           <Link
             href="/integrity"
-            className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
+            className="px-3 py-2 rounded-md text-sm font-medium hover:bg-white/10"
           >
             Integrity
           </Link>

@@ -48,8 +48,8 @@ export default function IntegrityPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-gray-900">Integrity Dashboard</h1>
+    <div className="space-y-10">
+      <h1 className="text-4xl font-bold tracking-tight text-gray-900">Integrity Dashboard</h1>
 
       {/* Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">

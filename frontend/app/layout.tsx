@@ -21,9 +21,9 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <QueryClientProvider client={queryClient}>
-          <div className="min-h-screen flex flex-col bg-gray-50">
+          <div className="min-h-screen flex flex-col">
             <Header />
-            <main className="flex-1 w-full max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+            <main className="flex-1 w-full max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
               {children}
             </main>
             <Footer />

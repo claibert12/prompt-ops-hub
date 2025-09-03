@@ -3,6 +3,7 @@
 import json
 import os
 import subprocess
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -29,6 +30,7 @@ class GitHubAdapter:
         """
         self.repo_path = Path(repo_path) if repo_path else Path.cwd()
         self.github_token = github_token or os.getenv("GITHUB_TOKEN")
+        self.logger = logging.getLogger(__name__)
 
         if not self.github_token:
             raise ValueError("GitHub token required. Set GITHUB_TOKEN environment variable.")
@@ -59,10 +61,10 @@ class GitHubAdapter:
             return True
 
         except subprocess.CalledProcessError as e:
-            print(f"Error creating branch: {e.stderr}")
+            self.logger.error("Error creating branch: %s", e.stderr)
             return False
         except Exception as e:
-            print(f"Error creating branch: {str(e)}")
+            self.logger.error("Error creating branch: %s", str(e))
             return False
 
     def commit_and_push(self, files_changed: list[str], message: str) -> bool:
@@ -108,10 +110,10 @@ class GitHubAdapter:
             return True
 
         except subprocess.CalledProcessError as e:
-            print(f"Error committing/pushing: {e.stderr}")
+            self.logger.error("Error committing/pushing: %s", e.stderr)
             return False
         except Exception as e:
-            print(f"Error committing/pushing: {str(e)}")
+            self.logger.error("Error committing/pushing: %s", str(e))
             return False
 
     def open_pr(self, title: str, body: str, branch: str, base: str = "main") -> PRResult:
@@ -300,7 +302,7 @@ class GitHubAdapter:
             branch_name = f"run-{run_id}-{int(__import__('time').time())}"
             return self.create_branch(branch_name)
         except Exception as e:
-            print(f"Error creating branch from run: {e}")
+            self.logger.error("Error creating branch from run: %s", e)
             return False
     
     def push_changes(self, run_id: int) -> bool:
@@ -334,10 +336,10 @@ class GitHubAdapter:
             
             return True
         except subprocess.CalledProcessError as e:
-            print(f"Error pushing changes: {e.stderr}")
+            self.logger.error("Error pushing changes: %s", e.stderr)
             return False
         except Exception as e:
-            print(f"Error pushing changes: {e}")
+            self.logger.error("Error pushing changes: %s", e)
             return False
     
     def open_pr_for_run(self, run_id: int, title: str, body: str, base: str = "main") -> PRResult:
