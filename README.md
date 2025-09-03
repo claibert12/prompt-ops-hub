@@ -37,6 +37,11 @@ A project with integrity gates enforced.
    python -c "from integrity_core import TamperChecker; TamperChecker().check()"
    ```
 
+4. Run mutation tests:
+   ```bash
+   python scripts/run_mutation_tests.py
+   ```
+
 ## Integrity Gates
 
 ### Coverage Requirements
@@ -57,6 +62,12 @@ A project with integrity gates enforced.
 ## Configuration
 
 Edit `config/guardrails.conf` to customize integrity gate settings.
+
+### Environment Variables
+
+- `API_TOKEN` – Optional bearer token required to access protected API endpoints.
+- `ALLOWED_ORIGINS` – Comma-separated list of origins allowed by the CORS middleware.
+- `GITHUB_TOKEN` – Token used by the GitHub adapter for creating branches and pull requests.
 
 ## Contributing
 

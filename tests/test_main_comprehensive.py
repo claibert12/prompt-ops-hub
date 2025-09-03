@@ -203,7 +203,10 @@ class TestMainComprehensive:
         mock_cursor_adapter.apply_patch.return_value = MagicMock(success=True, error=None)
         mock_cursor_adapter.run_tests.return_value = MagicMock(success=True, output="test output")
         
-        response = self.client.post("/tasks/1/run", json={"test_command": "pytest"})
+        response = self.client.post(
+            "/tasks/1/run",
+            json={"test_command": "pytest", "patch": "diff"},
+        )
         
         assert response.status_code == 200
         data = response.json()
@@ -216,7 +219,10 @@ class TestMainComprehensive:
         """Test run task endpoint not found."""
         mock_db_manager.return_value.get_task.return_value = None
         
-        response = self.client.post("/tasks/999/run", json={"test_command": "pytest"})
+        response = self.client.post(
+            "/tasks/999/run",
+            json={"test_command": "pytest", "patch": "diff"},
+        )
         
         assert response.status_code == 404
         assert "not found" in response.json()["detail"]
@@ -236,7 +242,10 @@ class TestMainComprehensive:
         mock_guardrails.check_prompt.return_value = [MagicMock(type="SECURITY", severity="HIGH")]
         mock_guardrails.should_block_execution.return_value = True
         
-        response = self.client.post("/tasks/1/run", json={"test_command": "pytest"})
+        response = self.client.post(
+            "/tasks/1/run",
+            json={"test_command": "pytest", "patch": "diff"},
+        )
         
         assert response.status_code == 400
         assert "blocked by guardrails" in response.json()["detail"]
@@ -256,7 +265,10 @@ class TestMainComprehensive:
         mock_guardrails.check_prompt.return_value = []
         mock_cursor_adapter.apply_patch.return_value = MagicMock(success=False, error="Patch failed")
         
-        response = self.client.post("/tasks/1/run", json={"test_command": "pytest"})
+        response = self.client.post(
+            "/tasks/1/run",
+            json={"test_command": "pytest", "patch": "diff"},
+        )
         
         assert response.status_code == 500
         assert "Patch application failed" in response.json()["detail"]
